@@ -27,7 +27,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div className="h-[90dvh] flex items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-4xl bg-white shadow-lg rounded-2xl overflow-hidden flex flex-col md:flex-row">
         
         {/* Image Section */}

@@ -27,7 +27,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-[100dvh] w-[100dvw] flex items-center justify-center bg-gray-100 p-4">
+    <div className="h-[90dvh] w-[100dvw] flex items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-4xl bg-white shadow-lg rounded-2xl overflow-hidden flex flex-col md:flex-row">
         
         <div className="flex items-center justify-center bg-gray-50 p-6 md:w-1/2">
