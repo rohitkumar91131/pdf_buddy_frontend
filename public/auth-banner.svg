@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" role="img" aria-labelledby="title desc">
+  <title id="title">PdfBuddy auth banner</title>
+  <desc id="desc">Illustration: stylized document, PB badge and tagline "Edit your PDF type"</desc>
+  <defs>
+    <linearGradient id="gDoc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06b6d4"/>
+      <stop offset="1" stop-color="#0ea5a4"/>
+    </linearGradient>
+    <linearGradient id="gPaper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f3f4f6"/>
+    </linearGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="24" flood-opacity="0.12" />
+    </filter>
+    <clipPath id="circleClip">
+      <circle cx="720" cy="150" r="90" />
+    </clipPath>
+  </defs>
+
+  <!-- background -->
+  <rect width="100%" height="100%" fill="#f8fafc"/>
+
+  <!-- left decorative wave -->
+  <path d="M0,180 C160,100 320,260 480,180 L480,0 L0,0 Z" fill="url(#gDoc)" opacity="0.08"/>
+
+  <!-- main document illustration -->
+  <g transform="translate(70,60)" filter="url(#softShadow)">
+    <rect x="0" y="0" width="380" height="480" rx="22" fill="url(#gDoc)"/>
+    <path d="M320 0v80a16 16 0 0 1-16 16H48a16 16 0 0 1-16-16V0h288z" fill="#ffffff" opacity="0.06"/>
+    <rect x="20" y="28" width="340" height="380" rx="14" fill="url(#gPaper)"/>
+
+    <!-- folded corner -->
+    <path d="M380 0 L340 0 L380 44 Z" fill="#ffffff" opacity="0.12" />
+
+    <!-- lines on the paper -->
+    <g fill="#e6edf0" transform="translate(40,70)">
+      <rect x="0" y="0" width="260" height="12" rx="6"/>
+      <rect x="0" y="32" width="300" height="12" rx="6"/>
+      <rect x="0" y="64" width="220" height="12" rx="6"/>
+      <rect x="0" y="96" width="280" height="12" rx="6"/>
+      <rect x="0" y="128" width="180" height="12" rx="6"/>
+    </g>
+
+    <!-- PB badge on paper -->
+    <g transform="translate(240,320)">
+      <rect x="0" y="0" width="110" height="56" rx="10" fill="#ef4444"/>
+      <text x="55" y="36" font-family="system-ui, Arial" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">PDF</text>
+    </g>
+
+    <!-- PB letters large -->
+    <text x="36" y="240" font-family="system-ui, -apple-system, 'Segoe UI', Roboto" font-weight="800" font-size="72" fill="#0f172a" opacity="0.08">pb</text>
+  </g>
+
+  <!-- right side: friendly panel with icon + tagline -->
+  <g transform="translate(500,60)">
+    <rect x="0" y="0" width="340" height="200" rx="16" fill="#ffffff" stroke="#e6eef0" />
+    <g transform="translate(24,20)">
+      <!-- Emoji / icon circle -->
+      <circle cx="40" cy="40" r="36" fill="#06b6d4"/>
+      <text x="40" y="52" font-size="28" font-family="system-ui, Arial" text-anchor="middle" fill="#fff">📄</text>
+
+      <!-- Title -->
+      <text x="110" y="36" font-family="system-ui, -apple-system, 'Segoe UI', Roboto" font-size="26" font-weight="800" fill="#0f172a">PdfBuddy</text>
+
+      <!-- Tagline -->
+      <text x="110" y="70" font-family="system-ui, -apple-system, 'Segoe UI', Roboto" font-size="14" fill="#475569">Edit your PDF type</text>
+    </g>
+
+    <!-- illustrative small devices / cards below -->
+    <g transform="translate(24,120)">
+      <rect x="0" y="0" width="80" height="64" rx="10" fill="#eef2f7"/>
+      <rect x="96" y="0" width="80" height="64" rx="10" fill="#eef2f7"/>
+      <rect x="192" y="0" width="80" height="64" rx="10" fill="#eef2f7"/>
+      <text x="14" y="44" font-family="system-ui" font-size="12" fill="#64748b">Split</text>
+      <text x="110" y="44" font-family="system-ui" font-size="12" fill="#64748b">Merge</text>
+      <text x="206" y="44" font-family="system-ui" font-size="12" fill="#64748b">Convert</text>
+    </g>
+  </g>
+
+  <!-- floating circle graphic -->
+  <g transform="translate(660,320)" clip-path="url(#circleClip)">
+    <rect x="-40" y="-40" width="220" height="160" rx="18" fill="#0ea5a4" opacity="0.06"/>
+    <path d="M20 10c40 0 60 30 90 30" stroke="#06b6d4" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.6"/>
+  </g>
+
+  <!-- small footer text (optional) -->
+  <text x="70" y="570" font-family="system-ui, Arial" font-size="12" fill="#94a3b8">PdfBuddy — Edit your PDF type</text>
+</svg>
