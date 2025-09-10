@@ -3,14 +3,16 @@ import toast from "react-hot-toast";
 import { usePdf } from "../../context/PdfContext";
 import { UploadCloud, Minus } from "lucide-react";
 import PdfDetails from "./PdfDetails";
-import { uploadPdf } from "../../lib/pdfUpload";
+import axios from "axios";
+import verifyUser from "../../lib/verify";
 
 export default function PdfDragDrop() {
   const { pdfFileDetails, setPdfFileDetails, setPdfUrl } = usePdf();
   const [isDragging, setIsDragging] = useState(false);
   const [showForm, setShowForm] = useState(true);
   const inputRef = useRef(null);
-  const [uploading , setUploading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -36,28 +38,50 @@ export default function PdfDragDrop() {
     setPdfUrl(URL.createObjectURL(file));
   };
 
-  const handleUpload = async () => {
-    setUploading(true)
+  const handleUpload = async() => {
+    const res = await verifyUser();
+    console.log(res)
+    if(!res.success){
+      toast.error("Please login to upload")
+      return
+    }
     if (!pdfFileDetails) return toast.error("No PDF selected");
-    const loadingUploadToastId = toast.loading("Uploading Pdf...");
+
+    setUploading(true);
+    setProgress(0);
+
     const formData = new FormData();
     formData.append("file", pdfFileDetails);
 
-    try {
-      const data = await uploadPdf(formData);
-      if(data.success){
-        toast.success("Upload successful!" , {id : loadingUploadToastId});
-      }
-      else{
-       toast.error("Upload failed!" , {id : loadingUploadToastId})
-      }
-      
-    } catch (err) {
-      toast.error(err.message || "Something went wrong" , {id : loadingUploadToastId});
-    }
-    finally{
-      setUploading(false)
-    }
+    const toastId = toast.loading("Uploading PDF...");
+
+    axios
+      .post(`${import.meta.env.VITE_BACKEND_URL}/pdfs/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setProgress(percent);
+          toast.loading(`Uploading... ${percent}%`, { id: toastId });
+        },
+        withCredentials : true
+      })
+      .then((res) => {
+        if (res.data.success) {
+          toast.success("Upload successful!", { id: toastId });
+          setProgress(100);
+        } else {
+          toast.error(res.data.msg || "Upload failed!", { id: toastId });
+          setProgress(0);
+        }
+      })
+      .catch((err) => {
+        toast.error(err.message || "Something went wrong!", { id: toastId });
+        setProgress(0);
+      })
+      .finally(() => {
+        setUploading(false);
+        setTimeout(() => setProgress(0), 500); 
+      });
   };
 
   return (
@@ -109,14 +133,22 @@ export default function PdfDragDrop() {
       {pdfFileDetails && (
         <div className="w-full max-w-3xl mt-4 flex flex-col gap-2">
           <PdfDetails />
+          
+          {uploading && (
+            <div className="w-full bg-gray-200 rounded h-2 mt-2">
+              <div
+                className="bg-green-500 h-2 rounded transition-all"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          )}
+
           <button
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors mt-2"
             onClick={handleUpload}
+            disabled={uploading}
           >
-            {
-              !uploading ? <>Upload PDF</> : <>Uploading...</>
-            }
-            
+            {!uploading ? "Upload PDF" : `Uploading... ${progress}%`}
           </button>
         </div>
       )}
