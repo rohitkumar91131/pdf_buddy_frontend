@@ -5,7 +5,6 @@ function AllPdfsSkeleton() {
 
   return (
     <div className="w-full min-h-screen p-6">
-      {/* Table Header */}
       <div className="hidden sm:grid grid-cols-[1fr_2fr_2fr_2fr_2fr_2fr] bg-gray-100 font-semibold text-gray-700 px-4 py-3 rounded-t-xl">
         <div>SL No</div>
         <div>Name</div>
@@ -14,7 +13,6 @@ function AllPdfsSkeleton() {
         <div className="col-span-2 text-center">Actions</div>
       </div>
 
-      {/* Skeleton Rows */}
       <div className="divide-y divide-gray-200 border border-gray-200 rounded-b-xl">
         {skeletonRows.map((_, index) => (
           <div
