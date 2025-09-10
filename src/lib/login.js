@@ -1,4 +1,5 @@
 export async function loginUser({ email, password }) {
+  try{
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -7,4 +8,8 @@ export async function loginUser({ email, password }) {
     });
     return res.json();
   }
+  catch(err){
+    throw new Error(err.message || "Network error");
+  }
+}
   

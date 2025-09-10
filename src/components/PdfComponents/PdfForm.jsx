@@ -1,18 +1,20 @@
 import React, { useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { usePdf } from "../../context/PdfContext";
-import { UploadCloud, Minus } from "lucide-react";
+import { UploadCloud, Minus, FileEdit } from "lucide-react";
 import PdfDetails from "./PdfDetails";
 import axios from "axios";
 import verifyUser from "../../lib/verify";
+import { useNavigate } from "react-router-dom";
 
 export default function PdfDragDrop() {
   const { pdfFileDetails, setPdfFileDetails, setPdfUrl } = usePdf();
   const [isDragging, setIsDragging] = useState(false);
-  const [showForm, setShowForm] = useState(true);
+  const [showDropzone, setShowDropzone] = useState(true);
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const navigate = useNavigate();
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -38,12 +40,11 @@ export default function PdfDragDrop() {
     setPdfUrl(URL.createObjectURL(file));
   };
 
-  const handleUpload = async() => {
+  const handleUploadAndEdit = async () => {
     const res = await verifyUser();
-    console.log(res)
-    if(!res.success){
-      toast.error("Please login to upload")
-      return
+    if (!res.success) {
+      toast.error("Please login to upload");
+      return;
     }
     if (!pdfFileDetails) return toast.error("No PDF selected");
 
@@ -55,38 +56,43 @@ export default function PdfDragDrop() {
 
     const toastId = toast.loading("Uploading PDF...");
 
-    axios
-      .post(`${import.meta.env.VITE_BACKEND_URL}/pdfs/upload`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (progressEvent) => {
-          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setProgress(percent);
-          toast.loading(`Uploading... ${percent}%`, { id: toastId });
-        },
-        withCredentials : true
-      })
-      .then((res) => {
-        if (res.data.success) {
-          toast.success("Upload successful!", { id: toastId });
-          setProgress(100);
-        } else {
-          toast.error(res.data.msg || "Upload failed!", { id: toastId });
-          setProgress(0);
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/pdfs/upload`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (progressEvent) => {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(percent);
+            toast.loading(`Uploading... ${percent}%`, { id: toastId });
+          },
+          withCredentials: true,
         }
-      })
-      .catch((err) => {
-        toast.error(err.message || "Something went wrong!", { id: toastId });
+      );
+
+      if (res.data.success) {
+        toast.success("Upload successful!", { id: toastId });
+        setProgress(100);
+        if (res.data.success) {
+          navigate(`/pdf/edit`);
+        }
+      } else {
+        toast.error(res.data.msg || "Upload failed!", { id: toastId });
         setProgress(0);
-      })
-      .finally(() => {
-        setUploading(false);
-        setTimeout(() => setProgress(0), 500); 
-      });
+      }
+    } catch (err) {
+      toast.error(err.message || "Something went wrong!", { id: toastId });
+      setProgress(0);
+    } finally {
+      setUploading(false);
+      setTimeout(() => setProgress(0), 500);
+    }
   };
 
   return (
     <div className="w-full flex flex-col items-center gap-6 p-4">
-      {showForm && (
+      {showDropzone && (
         <div
           className={`w-full max-w-3xl h-64 md:h-80 border-4 border-dashed rounded-2xl flex flex-col items-center justify-center relative cursor-pointer transition-all ${
             isDragging ? "border-indigo-500 bg-indigo-50" : "border-gray-300"
@@ -101,9 +107,7 @@ export default function PdfDragDrop() {
               className="absolute top-2 right-2 w-6 h-6 text-red-500 hover:text-red-700"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowForm(false);
-                setPdfFileDetails(null);
-                setPdfUrl(null);
+                setShowDropzone(false);
               }}
             />
           )}
@@ -121,19 +125,19 @@ export default function PdfDragDrop() {
         </div>
       )}
 
-      {!showForm && pdfFileDetails && (
+      {!showDropzone && (
         <button
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
-          onClick={() => setShowForm(true)}
+          onClick={() => setShowDropzone(true)}
         >
-          Show PDF Form
+          Show Dropzone
         </button>
       )}
 
       {pdfFileDetails && (
         <div className="w-full max-w-3xl mt-4 flex flex-col gap-2">
           <PdfDetails />
-          
+
           {uploading && (
             <div className="w-full bg-gray-200 rounded h-2 mt-2">
               <div
@@ -144,11 +148,12 @@ export default function PdfDragDrop() {
           )}
 
           <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors mt-2"
-            onClick={handleUpload}
+            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors mt-2"
+            onClick={handleUploadAndEdit}
             disabled={uploading}
           >
-            {!uploading ? "Upload PDF" : `Uploading... ${progress}%`}
+            <FileEdit className="w-5 h-5" />
+            {!uploading ? "Upload & Edit" : `Uploading... ${progress}%`}
           </button>
         </div>
       )}
