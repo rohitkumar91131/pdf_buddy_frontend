@@ -16,7 +16,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <BrowserRouter>
     <AuthProvider>
     <PdfProvider>
@@ -31,5 +30,5 @@ createRoot(document.getElementById('root')).render(
     </PdfProvider>
     </AuthProvider>
     </BrowserRouter>
-  </StrictMode>,
+
 )

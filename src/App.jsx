@@ -7,15 +7,17 @@ import Home from "./pages/homepage(pdf_edit_page)/Home";
 import Header from "./components/Ui/Header";
 import PdfEditor from "./components/PdfComponents/PdfEditor";
 import DashBoard from "./pages/dashboard/DashBoard";
+import ShowPdf from "./components/PdfComponents/ShowPdf";
 export default function App() {
   return (
     <div>
-      <Header/>
+      {/* <Header/> */}
       <Routes>
         <Route path="/" element={<Home/>} />
         <Route path="/dashboard" element={<DashBoard/>} />
         <Route path="/pdf/edit" element={<PdfEditor/>} />
         <Route path="/auth" element={<Auth/>} /> 
+        <Route path="/:pdfId" element={<ShowPdf/>} />
       </Routes>
     </div>
   );

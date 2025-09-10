@@ -8,12 +8,10 @@ import verifyUser from "../../lib/verify";
 import { useNavigate } from "react-router-dom";
 
 export default function PdfDragDrop() {
-  const { pdfFileDetails, setPdfFileDetails, setPdfUrl } = usePdf();
+  const { pdfFileDetails, setPdfFileDetails, setPdfUrl ,uploading, setUploading ,progress, setProgress} = usePdf();
   const [isDragging, setIsDragging] = useState(false);
   const [showDropzone, setShowDropzone] = useState(true);
   const inputRef = useRef(null);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const navigate = useNavigate();
 
   const handleDragOver = (e) => {
