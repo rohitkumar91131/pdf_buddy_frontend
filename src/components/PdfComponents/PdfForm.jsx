@@ -69,11 +69,13 @@ export default function PdfDragDrop() {
         }
       );
 
+      console.log(res.data)
+
       if (res.data.success) {
         toast.success("Upload successful!", { id: toastId });
         setProgress(100);
         if (res.data.success) {
-          navigate(`/pdf/edit`);
+          navigate(`/${res.data.file.id}`);
         }
       } else {
         toast.error(res.data.msg || "Upload failed!", { id: toastId });
