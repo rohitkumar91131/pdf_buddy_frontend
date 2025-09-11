@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 
 function AllPdfs() {
   const { allPdfs, setAllPdfs } = usePdf();
-  const [editing, setEditing] = useState({ id: null, type: null }); // type: 'name' | 'file'
+  const [editing, setEditing] = useState({ id: null, type: null }); 
   const [editedName, setEditedName] = useState("");
   const [editedFile, setEditedFile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,6 +82,17 @@ function AllPdfs() {
 
   if (loading) {
     return <AllPdfsSkeleton />;
+  }
+
+  const handleDeletePdf = async(id) =>{
+    const res = axios.delete(`${import.meta.env.VITE_BACKEND_URL}/pdfs/${id}`,{
+      withCredentials: true,
+    })
+    if(res.data.success){
+      const all = [...allPdfs];
+      const restPdfs = allPdfs.filter((pdf) => pdf._id === id);
+      setAllPdfs(restPdfs);
+    }
   }
 
   return (
@@ -162,10 +173,10 @@ function AllPdfs() {
                           className="hidden"
                         />
                         <button
-                          onClick={() => handleEditFile(pdf)}
+                          onClick={() => handleDeletePdf(pdf._id)}
                           className="flex-1 bg-purple-500 text-white py-2 rounded-lg hover:bg-purple-600 transition"
                         >
-                          Edit PDF
+                          Delete
                         </button>
 
                         <button
