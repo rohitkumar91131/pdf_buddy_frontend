@@ -75,7 +75,7 @@ export default function PdfDragDrop() {
         toast.success("Upload successful!", { id: toastId });
         setProgress(100);
         if (res.data.success) {
-          navigate(`/${res.data.file.id}`);
+          navigate(`/${res.data.file.name}`);
         }
       } else {
         toast.error(res.data.msg || "Upload failed!", { id: toastId });

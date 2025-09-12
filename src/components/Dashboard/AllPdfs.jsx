@@ -5,6 +5,7 @@ import editPdfName from "../../lib/editPdfName";
 import AllPdfsSkeleton from "../Ui/AllPdfSkeleton";
 import { usePdf } from "../../context/PdfContext";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function AllPdfs() {
   const { allPdfs, setAllPdfs } = usePdf();
@@ -73,11 +74,11 @@ function AllPdfs() {
       )
     );
     setEditing({ id: null, type: null });
-    toast.success("PDF updated (frontend only)");
+    toast.success("PDF updated");
   };
 
   const handleOpen = (pdf) => {
-    navigate(`/${pdf._id}`);
+    navigate(`/${pdf.name}`);
   };
 
   if (loading) {
@@ -85,13 +86,22 @@ function AllPdfs() {
   }
 
   const handleDeletePdf = async(id) =>{
-    const res = axios.delete(`${import.meta.env.VITE_BACKEND_URL}/pdfs/${id}`,{
-      withCredentials: true,
-    })
-    if(res.data.success){
-      const all = [...allPdfs];
-      const restPdfs = allPdfs.filter((pdf) => pdf._id === id);
-      setAllPdfs(restPdfs);
+    try{
+      const res = await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/pdfs/${id}`,{
+        withCredentials: true,
+      })
+      //console.log(res.data)
+      if(res.data.success){
+        const all = [...allPdfs];
+        const restPdfs = all.filter((pdf) => pdf._id !== id);
+        setAllPdfs(restPdfs);
+      }
+      else{
+        toast(res.data.msg)
+      }
+    }
+    catch(err){
+      toast(err.message)
     }
   }
 
