@@ -18,7 +18,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashBoard/>} />
         <Route path="/pdf/edit" element={<PdfEditor/>} />
         <Route path="/auth" element={<Auth/>} /> 
-        <Route path="/:pdfId" element={<PdfShowAndAnnoate/>} />
+        <Route path="/:name" element={<PdfShowAndAnnoate/>} />
       </Routes>
     </div>
   );

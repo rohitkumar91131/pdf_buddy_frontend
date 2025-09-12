@@ -130,12 +130,12 @@ function AllPdfs() {
                   <div>{index + 1}</div>
                   <div className="truncate overflow-hidden">
                     {isEditingName ? (
-                      <input
+                      <textarea
                         type="text"
                         value={editedName}
                         onChange={(e) => setEditedName(e.target.value)}
-                        className="w-full sm:max-w-full border border-gray-300 rounded-lg px-2 py-1 truncate"
-                      />
+                        className="w-full sm:max-w-full border border-gray-300 rounded-lg px-2 py-1  break-all"
+                      ></textarea>
                     ) : (
                       <span className="whitespace-normal break-all">{pdf.name}</span>
                     )}

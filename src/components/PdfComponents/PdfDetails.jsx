@@ -7,10 +7,16 @@ export default function PdfDetails() {
   if (!pdfFileDetails) return null;
 
   const handlePdfNameChange = (e) =>{
-    setPdfFileDetails(prev =>({
-      ...prev,
-      name : e.target.value
-    }))
+    console.log(pdfFileDetails);
+    const change = {...pdfFileDetails};
+    console.log(change)
+    setPdfFileDetails(prev =>
+      new File([prev], e.target.value, {
+        type: prev.type,
+        lastModified: prev.lastModified
+      })
+    );
+    
   }
 
   return (
