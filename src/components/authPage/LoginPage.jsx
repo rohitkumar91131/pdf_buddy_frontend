@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import { loginUser } from "../../lib/login";
 import { useNavigate } from "react-router-dom";
@@ -10,19 +10,29 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { setIsLoginPageInTheWindow } = useAuth();
+  const { setIsLogin, setIsLoginPageInTheWindow } = useAuth();
+  const emailRef = useRef();
+
+  useEffect(() => {
+    emailRef.current?.focus();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const data = await loginUser(form);
+      const msg = data.message || data.msg || "Login failed";
+
       if (data.success) {
-        toast.success(data.message);
-        navigate("/");
-      } else toast.error(data.message);
+        toast.success(msg);
+        setIsLogin(true);    
+        navigate(-1);        
+      } else {
+        toast.error(msg);
+      }
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || "Network error");
     }
     setLoading(false);
   };
@@ -37,6 +47,7 @@ export default function LoginPage() {
             className="w-32 h-32 md:w-60 md:h-60"
           />
         </div>
+
         <div className="p-6 flex flex-col justify-center md:w-1/2">
           <h1 className="text-2xl font-bold text-center mb-2">Login Form</h1>
           <p className="text-center text-gray-600 mb-6">
@@ -45,11 +56,13 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
+              ref={emailRef}
               type="email"
               placeholder="Email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
+              disabled={loading}
               className="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 
@@ -60,6 +73,7 @@ export default function LoginPage() {
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
+                disabled={loading}
                 className="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pr-12"
               />
               <button
@@ -75,7 +89,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-medium transition ${
-                loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
               }`}
             >
               <LogIn size={20} />

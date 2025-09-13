@@ -14,7 +14,7 @@ export default function NotFoundPage() {
   }, [seconds]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-center p-4">
+    <div className="h-[90dvh] w-[100dvw] flex flex-col items-center justify-center bg-gray-100 text-center p-4">
       <div className="flex items-center gap-3 mb-6 flex-wrap justify-center">
         <img src="/icon.svg" alt="PdfBuddy Logo" className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />
         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">

@@ -6,6 +6,7 @@ import AllPdfsSkeleton from "../Ui/AllPdfSkeleton";
 import { usePdf } from "../../context/PdfContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
 
 function AllPdfs() {
   const { allPdfs, setAllPdfs } = usePdf();
@@ -15,14 +16,14 @@ function AllPdfs() {
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
+  const { isLogin , setIsLogin } = useAuth();
 
-  useEffect(() => {
-    if (allPdfs.length === 0) {
-      retrieveAllPdf();
-    } else {
-      setLoading(false);
+  useEffect(()=>{
+    if(!isLogin){
+      return;
     }
-  }, [allPdfs]);
+    retrieveAllPdf();
+  },[])
 
   async function retrieveAllPdf() {
     try {
@@ -32,11 +33,16 @@ function AllPdfs() {
         return;
       }
       setAllPdfs(data.allPdfs);
+      setLoading(false)
     } catch (err) {
       toast.error(err.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  if(!isLogin){
+    return <p className="w-[100dvw] h-[90dvh] flex items-center justify-center">Please login to see your all pdf </p>
   }
 
   const handleEditName = (pdf) => {
@@ -106,7 +112,7 @@ function AllPdfs() {
   }
 
   return (
-    <div className="w-[100dvw] min-h-screen p-6">
+    <div className="w-[100dvw] h-[90dvh] p-6">
       {allPdfs.length > 0 ? (
         <div className="overflow-x-auto">
           <div className="hidden sm:grid grid-cols-[1fr_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)] bg-gray-100 font-semibold text-gray-700 px-4 py-3 rounded-t-xl">

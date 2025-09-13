@@ -5,8 +5,9 @@ import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import PdfMenu from "./PdfMenu";
-import PdfLoading from "../Ui/PdfLoading";
 import { addHighlights, getHighlights, updateHighlight, deleteHighlight } from "../../lib/highlightApi";
+import PdfViewerSkeleton from "../Ui/PdfSkeleton";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ShowPdf() {
   const {
@@ -20,6 +21,10 @@ export default function ShowPdf() {
     pageHeights,
     setPageHeights,
     zoom,
+    pdfError,
+    setPdfError,
+    initialPdfLoading,
+    setInitialPdfLoading,
   } = usePdf();
 
   const { name } = useParams();
@@ -31,14 +36,25 @@ export default function ShowPdf() {
   const [hoveredHighlightId, setHoveredHighlightId] = useState(null);
   const [pageLoading, setPageLoading] = useState({});
   const pageRefs = useRef({});
-  const {pdfError , setPdfError ,initialPdfLoading , setInitialPdfLoading} = usePdf();
+  const {isLogin , setIsLogin}  = useAuth();
 
   useEffect(() => {
+    if(!isLogin){
+      return
+    }
     loadPdfFromServer();
     return () => {
       if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     };
-  }, [name]);
+  }, [name , isLogin]);
+
+
+
+  useEffect(() => {
+    if (typeof totalNoOfPages === "number" && totalNoOfPages > 0) {
+      setInitialPdfLoading(false);
+    }
+  }, [totalNoOfPages]);
 
   const loadPdfFromServer = async () => {
     try {
@@ -46,21 +62,25 @@ export default function ShowPdf() {
         `${import.meta.env.VITE_BACKEND_URL}/pdfs/${name}`,
         { responseType: "blob", withCredentials: true }
       );
-      if (res.data.type !== "application/pdf") {
+
+      const contentType = res.headers?.["content-type"] || res.data?.type || "";
+      if (!contentType.includes("application/pdf")) {
         toast.error("Invalid PDF file");
-        setPdfError(true)
+        setPdfError(true);
+        setInitialPdfLoading(false);
         return;
       }
-      setPdfBlobUrl(URL.createObjectURL(res.data));
+
+      const blob = res.data;
+      setPdfBlobUrl(URL.createObjectURL(blob));
     } catch (err) {
-      toast.error(err.message);
+      const msg = err.response?.data?.msg || err.response?.data?.message || err.message || "Failed to load PDF";
+      toast.error(msg);
+      console.error("loadPdfFromServer:", err);
       setInitialPdfLoading(false);
+      setPdfError(true);
     }
   };
-
-  if(totalNoOfPages){
-    setInitialPdfLoading(false);
-  }
 
   useEffect(() => {
     if (!pdfBlobUrl) return;
@@ -70,10 +90,16 @@ export default function ShowPdf() {
           `${import.meta.env.VITE_BACKEND_URL}/pdfs/send_id/${name}`,
           { withCredentials: true }
         );
-        setPdfId(res.data._id);
+
+        const data = res.data || {};
+        const id = data._id || (data.data && data.data._id) || null;
+        if (id) setPdfId(id);
+        else {
+          console.warn("send_id returned unexpected payload:", data);
+        }
       } catch (err) {
         toast.error("Failed to get PDF ID");
-        console.error(err);
+        console.error("fetchPdfId:", err);
       }
     };
     fetchPdfId();
@@ -83,11 +109,18 @@ export default function ShowPdf() {
     if (!pdfId) return;
     const fetchHighlights = async () => {
       try {
-        const data = await getHighlights(pdfId);
-        setHighlights(data.map((h) => ({ ...h, id: h._id })));
+        const res = await getHighlights(pdfId);
+        let arr = [];
+        if (Array.isArray(res)) arr = res;
+        else if (res && Array.isArray(res.highlights)) arr = res.highlights;
+        else if (res && Array.isArray(res.data)) arr = res.data;
+        else {
+          console.warn("getHighlights returned unexpected:", res);
+        }
+        setHighlights(arr.map((h) => ({ ...h, id: h._id })));
       } catch (err) {
         toast.error("Failed to load highlights");
-        console.error(err);
+        console.error("fetchHighlights:", err);
       }
     };
     fetchHighlights();
@@ -99,7 +132,7 @@ export default function ShowPdf() {
     parent.addEventListener("scroll", handleScroll);
     handleScroll();
     return () => parent.removeEventListener("scroll", handleScroll);
-  }, [handleScroll, rowVirtualizer, totalNoOfPages]);
+  }, [handleScroll, rowVirtualizer, totalNoOfPages, parentRef]);
 
   useEffect(() => {
     const handleMouseUp = (e) => {
@@ -110,7 +143,13 @@ export default function ShowPdf() {
         selection.removeAllRanges();
         return;
       }
-      const range = selection.getRangeAt(0);
+      let range;
+      try {
+        range = selection.getRangeAt(0);
+      } catch {
+        selection.removeAllRanges();
+        return;
+      }
       const rects = range.getClientRects();
       if (!rects.length) {
         selection.removeAllRanges();
@@ -154,8 +193,19 @@ export default function ShowPdf() {
       selection.removeAllRanges();
     };
 
+    const handleTouchEnd = (e) => {
+      const touch = e.changedTouches && e.changedTouches[0];
+      if (!touch) return;
+      const simulatedEvent = { clientX: touch.clientX, clientY: touch.clientY };
+      handleMouseUp(simulatedEvent);
+    };
+
     document.addEventListener("mouseup", handleMouseUp);
-    return () => document.removeEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchend", handleTouchEnd);
+    return () => {
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
   }, []);
 
   const addComment = async () => {
@@ -170,39 +220,57 @@ export default function ShowPdf() {
     };
 
     try {
-      const saved = await addHighlights(pdfId, [newHighlight]);
+      const res = await addHighlights(pdfId, [newHighlight]);
+      // res might be:
+      // 1) an array of saved highlights
+      // 2) { success: true, highlights: [...] }
+      // 3) { data: [...] }
+      let saved = [];
+      if (Array.isArray(res)) saved = res;
+      else if (res && Array.isArray(res.highlights)) saved = res.highlights;
+      else if (res && Array.isArray(res.data)) saved = res.data;
+      else saved = [];
+
+      if (saved.length === 0) {
+        // fallback: maybe the helper returned the created object directly
+        if (res && res._id) saved = [res];
+      }
+
       setHighlights((prev) => [...prev, ...saved.map((h) => ({ ...h, id: h._id }))]);
       setCommentBox(null);
       setCommentText("");
     } catch (err) {
       toast.error("Failed to save highlight");
-      console.error(err);
+      console.error("addComment:", err);
     }
   };
 
   const updateComment = async (id) => {
     if (!id || !commentText.trim()) return;
     try {
-      const updated = await updateHighlight(id, commentText);
+      const res = await updateHighlight(id, commentText);
+      // res might be { success:true, highlight: {...} } or the updated object
+      const updatedObj = res && res.highlight ? res.highlight : res;
       setHighlights((prev) =>
-        prev.map((h) => (h.id === id ? { ...h, comment: updated.comment } : h))
+        prev.map((h) => (h.id === id ? { ...h, comment: updatedObj.comment || commentText } : h))
       );
       setActiveHighlightId(null);
       setCommentText("");
     } catch (err) {
       toast.error("Failed to update highlight");
-      console.error(err);
+      console.error("updateComment:", err);
     }
   };
 
   const deleteHighlightFunc = async (id) => {
     try {
-      await deleteHighlight(id);
+      const res = await deleteHighlight(id);
+      // res might be { success:true, message } or a simple acknowledgement
       setHighlights((prev) => prev.filter((h) => h.id !== id));
       if (activeHighlightId === id) setActiveHighlightId(null);
     } catch (err) {
       toast.error("Failed to delete highlight");
-      console.error(err);
+      console.error("deleteHighlightFunc:", err);
     }
   };
 
@@ -225,7 +293,10 @@ export default function ShowPdf() {
         <Document
           file={pdfBlobUrl}
           onLoadSuccess={onDocumentLoadSuccess}
-          onError={(err) => toast.error(err.message)}
+          onError={(err) => {
+            toast.error(err.message || "Failed to render PDF");
+            console.error("Document error:", err);
+          }}
         >
           {totalNoOfPages > 0 && (
             <div

@@ -4,15 +4,19 @@ const editPdfName = async (pdfId, newName) => {
   try {
     const res = await axios.patch(
       `${import.meta.env.VITE_BACKEND_URL}/pdfs/${pdfId}`,
-      { name: newName },          
-      { withCredentials: true }  
+      { name: newName },
+      { withCredentials: true }
     );
     return res.data;
   } catch (err) {
-    console.error(err);
-    throw new Error(err.response?.data?.msg || err.message);
+    const errorMsg =
+      err.response?.data?.msg ||
+      err.response?.data?.message ||
+      err.message ||
+      "Something went wrong";
+    console.error("Edit PDF Name Error:", errorMsg);
+    throw new Error(errorMsg);
   }
 };
 
-
-export default editPdfName
+export default editPdfName;

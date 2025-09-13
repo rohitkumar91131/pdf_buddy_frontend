@@ -18,6 +18,7 @@ export const PdfProvider = ({ children }) => {
   const [pdfError, setPdfError] = useState(false);
   const [initialPdfLoading, setInitialPdfLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('')
 
   const rowVirtualizer = useVirtualizer({
     count: totalNoOfPages,
@@ -153,8 +154,8 @@ export const PdfProvider = ({ children }) => {
         setPdfError,
         initialPdfLoading,
         setInitialPdfLoading,
-        downloading
-      }}
+        downloading,
+        errorMsg, setErrorMsg      }}
     >
       {children}
     </PdfContext.Provider>

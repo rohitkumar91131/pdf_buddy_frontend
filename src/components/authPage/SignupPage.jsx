@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { signupUser } from "../../lib/signup";
 import { useNavigate } from "react-router-dom";
@@ -10,19 +10,29 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { setIsLoginPageInTheWindow } = useAuth();
+  const { setIsLogin, setIsLoginPageInTheWindow } = useAuth();
+  const emailRef = useRef();
+
+  useEffect(() => {
+    emailRef.current?.focus();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const data = await signupUser(form);
+      const msg = data.message || data.msg || "Signup failed";
+
       if (data.success) {
-        toast.success(data.message);
-        navigate("/");
-      } else toast.error(data.message);
+        toast.success(msg);
+        setIsLogin(true);           
+        navigate(-1);     
+      } else {
+        toast.error(msg);
+      }
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || "Network error");
     }
     setLoading(false);
   };
@@ -30,7 +40,7 @@ export default function SignupPage() {
   return (
     <div className="h-[90dvh] flex items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-4xl bg-white shadow-lg rounded-2xl overflow-hidden flex flex-col md:flex-row">
-        
+
         <div className="flex items-center justify-center bg-gray-50 p-6 md:w-1/2">
           <img
             src="/icon.svg"
@@ -47,11 +57,13 @@ export default function SignupPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
+              ref={emailRef}
               type="email"
               placeholder="Email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
+              disabled={loading}
               className="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 
@@ -62,6 +74,7 @@ export default function SignupPage() {
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
+                disabled={loading}
                 className="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pr-12"
               />
               <button
@@ -77,7 +90,7 @@ export default function SignupPage() {
               type="submit"
               disabled={loading}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-medium transition ${
-                loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
+                loading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
               }`}
             >
               <UserPlus size={20} />

@@ -1,4 +1,5 @@
 import axios from "axios";
+import toast from "react-hot-toast";
 
 export default async function verifyUser() {
   try {
@@ -6,8 +7,21 @@ export default async function verifyUser() {
       `${import.meta.env.VITE_BACKEND_URL}/auth/verify`,
       { withCredentials: true }
     );
-    return res.data; 
+
+    if (!res.data.success) {
+      throw new Error(res.data.msg || res.data.message || "Verification failed");
+    }
+
+    return true;
   } catch (err) {
-    return { success: false, msg: err.message || "Verification failed" };
+    const msg =
+      err.response?.data?.msg ||
+      err.response?.data?.message ||
+      err.message ||
+      "Verification failed";
+
+    console.error("Verify User Error:", msg);
+    toast.error(msg);
+    return false;
   }
 }

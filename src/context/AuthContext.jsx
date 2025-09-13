@@ -4,9 +4,10 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [isLoginPageInTheWindow, setIsLoginPageInTheWindow] = useState(true);
+  const [isLogin , setIsLogin] = useState(false)
 
   return (
-    <AuthContext.Provider value={{ isLoginPageInTheWindow, setIsLoginPageInTheWindow }}>
+    <AuthContext.Provider value={{ isLogin , setIsLogin ,isLoginPageInTheWindow, setIsLoginPageInTheWindow }}>
       {children}
     </AuthContext.Provider>
   );

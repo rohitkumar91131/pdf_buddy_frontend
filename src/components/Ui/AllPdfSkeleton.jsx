@@ -1,36 +1,37 @@
-import Skeleton from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
+import React from "react";
 
-function PdfSkeleton({ pages = 3 }) {
+export default function AllPdfsSkeleton() {
+  const skeletonArray = Array.from({ length: 10 }); 
+
   return (
-    <div className="flex flex-col gap-6 p-4 w-full items-center">
-      {/* Title + file info */}
-      <div className="w-full max-w-3xl flex flex-col gap-2 mb-4">
-        <Skeleton height={30} width={250} />  {/* Title */}
-        <div className="flex gap-4">
-          <Skeleton height={20} width={100} /> {/* Author/File size */}
-          <Skeleton height={20} width={80} />
-        </div>
+    <div className="w-[100dvw] min-h-screen p-6">
+      <div className="hidden sm:grid grid-cols-[1fr_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)] bg-gray-100 font-semibold text-gray-700 px-4 py-3 rounded-t-xl">
+        <div>SL No</div>
+        <div>Name</div>
+        <div>Size</div>
+        <div>Date</div>
+        <div className="col-span-2 text-center">Actions</div>
       </div>
 
-      {/* Toolbar */}
-      <div className="w-full max-w-3xl flex gap-3 mb-4">
-        <Skeleton height={35} width={80} />
-        <Skeleton height={35} width={80} />
-        <Skeleton height={35} width={80} />
+      <div className="divide-y divide-gray-200 border border-gray-200 rounded-b-xl">
+        {skeletonArray.map((_, index) => (
+          <div
+            key={index}
+            className="grid grid-cols-1 sm:grid-cols-[1fr_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)] items-center px-4 py-3 gap-2 sm:gap-4 animate-pulse"
+          >
+            <div className="h-4 bg-gray-300 rounded w-6"></div>
+            <div className="h-4 bg-gray-300 rounded w-full"></div>
+            <div className="h-4 bg-gray-300 rounded w-12"></div>
+            <div className="h-4 bg-gray-300 rounded w-20"></div>
+            <div className="flex gap-2 sm:col-span-2">
+              <div className="h-8 bg-gray-300 rounded flex-1"></div>
+              <div className="h-8 bg-gray-300 rounded flex-1"></div>
+              <div className="h-8 bg-gray-300 rounded flex-1"></div>
+              <div className="h-8 bg-gray-300 rounded flex-1"></div>
+            </div>
+          </div>
+        ))}
       </div>
-
-      {/* Pages */}
-      {[...Array(pages)].map((_, i) => (
-        <div
-          key={i}
-          className="w-[600px] h-[800px] rounded-lg shadow-md overflow-hidden"
-        >
-          <Skeleton height="100%" width="100%" />
-        </div>
-      ))}
     </div>
   );
 }
-
-export default PdfSkeleton;

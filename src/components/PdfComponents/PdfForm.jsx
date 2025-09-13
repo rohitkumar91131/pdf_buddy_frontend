@@ -6,9 +6,10 @@ import PdfDetails from "./PdfDetails";
 import axios from "axios";
 import verifyUser from "../../lib/verify";
 import { useNavigate } from "react-router-dom";
+import checkNameExists from "../../lib/checkPdfNameInDashboard";
 
 export default function PdfDragDrop() {
-  const { pdfFileDetails, setPdfFileDetails, setPdfUrl ,uploading, setUploading ,progress, setProgress} = usePdf();
+  const { pdfFileDetails, setPdfFileDetails, setPdfUrl, uploading, setUploading, progress, setProgress } = usePdf();
   const [isDragging, setIsDragging] = useState(false);
   const [showDropzone, setShowDropzone] = useState(true);
   const inputRef = useRef(null);
@@ -39,29 +40,25 @@ export default function PdfDragDrop() {
   };
 
   const handleUploadAndEdit = async () => {
-    const res = await verifyUser();
-    if (!res.success) {
-      toast.error("Please login to upload");
-      return;
-    }
     if (!pdfFileDetails) return toast.error("No PDF selected");
+
+    const nameCheck = await checkNameExists(pdfFileDetails.name);
+    if (!nameCheck) return;
 
     setUploading(true);
     setProgress(0);
-
     const formData = new FormData();
     formData.append("file", pdfFileDetails);
 
     const toastId = toast.loading("Uploading PDF...");
-
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/pdfs/upload`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
-          onUploadProgress: (progressEvent) => {
-            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onUploadProgress: (e) => {
+            const percent = Math.round((e.loaded * 100) / e.total);
             setProgress(percent);
             toast.loading(`Uploading... ${percent}%`, { id: toastId });
           },
@@ -69,14 +66,10 @@ export default function PdfDragDrop() {
         }
       );
 
-      console.log(res.data)
-
       if (res.data.success) {
         toast.success("Upload successful!", { id: toastId });
         setProgress(100);
-        if (res.data.success) {
-          navigate(`/${res.data.file.name}`);
-        }
+        navigate(`/${res.data.file.name}`);
       } else {
         toast.error(res.data.msg || "Upload failed!", { id: toastId });
         setProgress(0);
@@ -143,7 +136,7 @@ export default function PdfDragDrop() {
               <div
                 className="bg-green-500 h-2 rounded transition-all"
                 style={{ width: `${progress}%` }}
-              ></div>
+              />
             </div>
           )}
 
