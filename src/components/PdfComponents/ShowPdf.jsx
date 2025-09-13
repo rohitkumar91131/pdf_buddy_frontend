@@ -4,9 +4,7 @@ import { usePdf } from "../../context/PdfContext";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import PdfMenu from "./PdfMenu";
 import { addHighlights, getHighlights, updateHighlight, deleteHighlight } from "../../lib/highlightApi";
-import PdfViewerSkeleton from "../Ui/PdfSkeleton";
 import { useAuth } from "../../context/AuthContext";
 
 export default function ShowPdf() {
@@ -21,9 +19,7 @@ export default function ShowPdf() {
     pageHeights,
     setPageHeights,
     zoom,
-    pdfError,
     setPdfError,
-    initialPdfLoading,
     setInitialPdfLoading,
   } = usePdf();
 
@@ -36,19 +32,15 @@ export default function ShowPdf() {
   const [hoveredHighlightId, setHoveredHighlightId] = useState(null);
   const [pageLoading, setPageLoading] = useState({});
   const pageRefs = useRef({});
-  const {isLogin , setIsLogin}  = useAuth();
+  const { isLogin } = useAuth();
 
   useEffect(() => {
-    if(!isLogin){
-      return
-    }
+    if (!isLogin) return;
     loadPdfFromServer();
     return () => {
       if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     };
-  }, [name , isLogin]);
-
-
+  }, [name, isLogin]);
 
   useEffect(() => {
     if (typeof totalNoOfPages === "number" && totalNoOfPages > 0) {
@@ -58,11 +50,10 @@ export default function ShowPdf() {
 
   const loadPdfFromServer = async () => {
     try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/pdfs/${name}`,
-        { responseType: "blob", withCredentials: true }
-      );
-
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/pdfs/${name}`, {
+        responseType: "blob",
+        withCredentials: true,
+      });
       const contentType = res.headers?.["content-type"] || res.data?.type || "";
       if (!contentType.includes("application/pdf")) {
         toast.error("Invalid PDF file");
@@ -70,13 +61,11 @@ export default function ShowPdf() {
         setInitialPdfLoading(false);
         return;
       }
-
       const blob = res.data;
       setPdfBlobUrl(URL.createObjectURL(blob));
     } catch (err) {
       const msg = err.response?.data?.msg || err.response?.data?.message || err.message || "Failed to load PDF";
       toast.error(msg);
-      console.error("loadPdfFromServer:", err);
       setInitialPdfLoading(false);
       setPdfError(true);
     }
@@ -86,20 +75,14 @@ export default function ShowPdf() {
     if (!pdfBlobUrl) return;
     const fetchPdfId = async () => {
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/pdfs/send_id/${name}`,
-          { withCredentials: true }
-        );
-
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/pdfs/send_id/${name}`, {
+          withCredentials: true,
+        });
         const data = res.data || {};
         const id = data._id || (data.data && data.data._id) || null;
         if (id) setPdfId(id);
-        else {
-          console.warn("send_id returned unexpected payload:", data);
-        }
-      } catch (err) {
+      } catch {
         toast.error("Failed to get PDF ID");
-        console.error("fetchPdfId:", err);
       }
     };
     fetchPdfId();
@@ -114,13 +97,9 @@ export default function ShowPdf() {
         if (Array.isArray(res)) arr = res;
         else if (res && Array.isArray(res.highlights)) arr = res.highlights;
         else if (res && Array.isArray(res.data)) arr = res.data;
-        else {
-          console.warn("getHighlights returned unexpected:", res);
-        }
         setHighlights(arr.map((h) => ({ ...h, id: h._id })));
-      } catch (err) {
+      } catch {
         toast.error("Failed to load highlights");
-        console.error("fetchHighlights:", err);
       }
     };
     fetchHighlights();
@@ -155,7 +134,6 @@ export default function ShowPdf() {
         selection.removeAllRanges();
         return;
       }
-
       const pageNumber = Object.keys(pageRefs.current).find((p) => {
         const el = pageRefs.current[p];
         if (!el) return false;
@@ -163,16 +141,13 @@ export default function ShowPdf() {
         const selRect = rects[0];
         return selRect.top >= rect.top && selRect.bottom <= rect.bottom;
       });
-
       if (!pageNumber) {
         selection.removeAllRanges();
         return;
       }
-
       const pageContainer = pageRefs.current[pageNumber];
       const canvasEl = pageContainer && pageContainer.querySelector && pageContainer.querySelector("canvas");
       const containerRect = canvasEl ? canvasEl.getBoundingClientRect() : pageContainer.getBoundingClientRect();
-
       const relativeRects = Array.from(rects).map((r) => ({
         left: (r.left - containerRect.left) / containerRect.width,
         top: (r.top - containerRect.top) / containerRect.height,
@@ -180,26 +155,20 @@ export default function ShowPdf() {
         height: r.height / containerRect.height,
         page: Number(pageNumber),
       }));
-
       setCommentBox({
         page: Number(pageNumber),
         rects: relativeRects,
-        clientX: e.clientX,
-        clientY: e.clientY - 40,
         text: selectionString,
       });
-
       setCommentText("");
       selection.removeAllRanges();
     };
-
     const handleTouchEnd = (e) => {
       const touch = e.changedTouches && e.changedTouches[0];
       if (!touch) return;
       const simulatedEvent = { clientX: touch.clientX, clientY: touch.clientY };
       handleMouseUp(simulatedEvent);
     };
-
     document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("touchend", handleTouchEnd);
     return () => {
@@ -210,7 +179,6 @@ export default function ShowPdf() {
 
   const addComment = async () => {
     if (!commentBox || !commentText.trim() || !pdfId) return;
-
     const newHighlight = {
       pdfId,
       page: commentBox.page,
@@ -218,30 +186,18 @@ export default function ShowPdf() {
       comment: commentText,
       rects: commentBox.rects,
     };
-
     try {
       const res = await addHighlights(pdfId, [newHighlight]);
-      // res might be:
-      // 1) an array of saved highlights
-      // 2) { success: true, highlights: [...] }
-      // 3) { data: [...] }
       let saved = [];
       if (Array.isArray(res)) saved = res;
       else if (res && Array.isArray(res.highlights)) saved = res.highlights;
       else if (res && Array.isArray(res.data)) saved = res.data;
-      else saved = [];
-
-      if (saved.length === 0) {
-        // fallback: maybe the helper returned the created object directly
-        if (res && res._id) saved = [res];
-      }
-
+      else if (res && res._id) saved = [res];
       setHighlights((prev) => [...prev, ...saved.map((h) => ({ ...h, id: h._id }))]);
       setCommentBox(null);
       setCommentText("");
-    } catch (err) {
+    } catch {
       toast.error("Failed to save highlight");
-      console.error("addComment:", err);
     }
   };
 
@@ -249,28 +205,24 @@ export default function ShowPdf() {
     if (!id || !commentText.trim()) return;
     try {
       const res = await updateHighlight(id, commentText);
-      // res might be { success:true, highlight: {...} } or the updated object
       const updatedObj = res && res.highlight ? res.highlight : res;
       setHighlights((prev) =>
         prev.map((h) => (h.id === id ? { ...h, comment: updatedObj.comment || commentText } : h))
       );
       setActiveHighlightId(null);
       setCommentText("");
-    } catch (err) {
+    } catch {
       toast.error("Failed to update highlight");
-      console.error("updateComment:", err);
     }
   };
 
   const deleteHighlightFunc = async (id) => {
     try {
-      const res = await deleteHighlight(id);
-      // res might be { success:true, message } or a simple acknowledgement
+      await deleteHighlight(id);
       setHighlights((prev) => prev.filter((h) => h.id !== id));
       if (activeHighlightId === id) setActiveHighlightId(null);
-    } catch (err) {
+    } catch {
       toast.error("Failed to delete highlight");
-      console.error("deleteHighlightFunc:", err);
     }
   };
 
@@ -289,13 +241,12 @@ export default function ShowPdf() {
 
   return (
     <>
-      <div className="w-full min-h-screen flex flex-col items-center bg-gray-100 ">
+      <div className="w-full min-h-screen flex flex-col items-center bg-gray-100">
         <Document
           file={pdfBlobUrl}
           onLoadSuccess={onDocumentLoadSuccess}
           onError={(err) => {
             toast.error(err.message || "Failed to render PDF");
-            console.error("Document error:", err);
           }}
         >
           {totalNoOfPages > 0 && (
@@ -314,11 +265,10 @@ export default function ShowPdf() {
                   const pageNumber = virtualRow.index + 1;
                   const isLoading = pageLoading[pageNumber] !== false;
                   const wrapperHeight = pageHeights[virtualRow.index] || 400;
-
                   return (
                     <div
                       key={virtualRow.key}
-                      className="flex justify-center relative "
+                      className="flex justify-center relative"
                       style={{
                         background: "#f5f5f5",
                         boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
@@ -339,8 +289,10 @@ export default function ShowPdf() {
                           <div className="loader border-t-4 border-blue-500 w-8 h-8 rounded-full animate-spin"></div>
                         </div>
                       )}
-
-                      <div style={{ position: "relative", width: `${pageWidth}px`, height: `${wrapperHeight}px` }} className="flex justify-center">
+                      <div
+                        style={{ position: "relative", width: `${pageWidth}px`, height: `${wrapperHeight}px` }}
+                        className="flex justify-center"
+                      >
                         <Page
                           pageNumber={pageNumber}
                           width={pageWidth}
@@ -348,7 +300,6 @@ export default function ShowPdf() {
                           renderAnnotationLayer
                           onLoadSuccess={(page) => handlePageLoadSuccess(page, virtualRow.index)}
                         />
-
                         {highlights
                           .filter((h) => h.page === pageNumber)
                           .map((h) => (
@@ -356,12 +307,7 @@ export default function ShowPdf() {
                               {h.rects.map((r, idx) => {
                                 const isActive = activeHighlightId === h.id;
                                 const isHovered = hoveredHighlightId === h.id;
-                                const bg = isActive || isHovered
-                                  ? "rgba(255,200,60,0.85)"
-                                  : "linear-gradient(180deg, rgba(255,245,157,0.35), rgba(255,223,93,0.28))";
-                                const border = "1px solid rgba(255,180,0,0.55)";
-                                const boxShadow = isHovered ? "0 8px 20px rgba(255,180,0,0.14)" : "inset 0 1px 0 rgba(255,255,255,0.45)";
-
+                                const bg = isActive || isHovered ? "rgba(255,200,60,0.85)" : "rgba(255,223,93,0.35)";
                                 return (
                                   <div
                                     key={idx}
@@ -379,15 +325,13 @@ export default function ShowPdf() {
                                       width: `${r.width * 100}%`,
                                       height: `${r.height * 100}%`,
                                       background: bg,
-                                      border,
+                                      border: "1px solid rgba(255,180,0,0.55)",
                                       borderRadius: "4px",
                                       cursor: "pointer",
-                                      transition: "background 140ms ease, box-shadow 140ms ease, transform 140ms ease",
+                                      transition: "all 140ms ease",
                                       transform: isHovered ? "scale(1.01)" : "none",
-                                      boxShadow,
+                                      boxShadow: isHovered ? "0 8px 20px rgba(255,180,0,0.14)" : "inset 0 1px 0 rgba(255,255,255,0.45)",
                                       zIndex: 60,
-                                      pointerEvents: "auto",
-                                      backdropFilter: "saturate(120%)",
                                     }}
                                   />
                                 );
@@ -395,44 +339,23 @@ export default function ShowPdf() {
                             </React.Fragment>
                           ))}
                       </div>
-
                       {activeHighlightId &&
                         !commentBox &&
                         highlights
                           .filter((h) => h.id === activeHighlightId && h.page === pageNumber)
                           .map((h) => {
-                            const firstRect = h.rects && h.rects[0];
-                            const container = pageRefs.current[pageNumber];
-                            const canvasEl = container && container.querySelector && container.querySelector("canvas");
-                            const containerRect = canvasEl ? canvasEl.getBoundingClientRect() : container ? container.getBoundingClientRect() : null;
-                            const topPx =
-                              containerRect && firstRect
-                                ? firstRect.top * containerRect.height - 70
-                                : -9999;
-                            const leftPx =
-                              containerRect && firstRect ? firstRect.left * containerRect.width : 0;
                             return (
                               <div
                                 key={h.id}
-                                style={{
-                                  position: "absolute",
-                                  top: `${topPx}px`,
-                                  left: `${leftPx}px`,
-                                  zIndex: 100,
-                                  background: "white",
-                                  border: "1px solid rgba(200,200,200,0.9)",
-                                  padding: "8px",
-                                  borderRadius: "6px",
-                                  width: "240px",
-                                  boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
-                                }}
+                                className="absolute z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-3 w-[90vw] sm:w-64"
+                                style={{ top: "10%", left: "5%" }}
                               >
                                 <textarea
                                   value={commentText}
                                   onChange={(e) => setCommentText(e.target.value)}
                                   className="border px-2 py-1 rounded w-full h-20 resize-none"
                                 />
-                                <div className="flex gap-2 mt-2">
+                                <div className="flex flex-wrap gap-2 mt-2">
                                   <button
                                     onClick={() => updateComment(h.id)}
                                     className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
@@ -456,29 +379,13 @@ export default function ShowPdf() {
             </div>
           )}
         </Document>
-
         {commentBox && (
-          <div
-            style={{
-              position: "fixed",
-              top: commentBox.clientY,
-              left: commentBox.clientX,
-              background: "white",
-              border: "1px solid rgba(200,200,200,0.9)",
-              padding: "6px 8px",
-              borderRadius: "6px",
-              zIndex: 120,
-              display: "flex",
-              gap: "6px",
-              alignItems: "center",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
-            }}
-          >
+          <div className="fixed inset-x-4 bottom-10 sm:inset-auto sm:top-[20%] sm:left-[30%] bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-3 flex flex-col gap-2 w-[90vw] sm:w-72">
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="Add comment"
-              className="border px-2 py-1 rounded w-60 h-20 resize-none"
+              className="border px-2 py-1 rounded w-full h-20 resize-none"
             />
             <button onClick={addComment} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
               Add
@@ -488,4 +395,4 @@ export default function ShowPdf() {
       </div>
     </>
   );
-}
+                   }
