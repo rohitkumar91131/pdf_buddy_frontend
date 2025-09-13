@@ -8,7 +8,8 @@ import Header from "./components/Ui/Header";
 import PdfEditor from "./components/PdfComponents/PdfEditor";
 import DashBoard from "./pages/dashboard/DashBoard";
 import ShowPdf from "./components/PdfComponents/ShowPdf";
-import PdfShowAndAnnoate from "./components/PdfShowAndAnnoatePage/PdfShowAndAnnoate";
+import NotFoundPage from "./pages/NotFoundPage";
+import PdfShowAndAnnoate from "./pages/PdfShowAndAnnoatePage/PdfShowAndAnnoate";
 export default function App() {
   return (
     <div>
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/pdf/edit" element={<PdfEditor/>} />
         <Route path="/auth" element={<Auth/>} /> 
         <Route path="/:name" element={<PdfShowAndAnnoate/>} />
+        <Route path="*" element={<NotFoundPage/>} />
       </Routes>
     </div>
   );

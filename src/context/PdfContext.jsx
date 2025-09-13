@@ -15,6 +15,9 @@ export const PdfProvider = ({ children }) => {
   const [zoom, setZoom] = useState(1);
   const [pageHeights, setPageHeights] = useState([]);
   const parentRef = useRef(null);
+  const [pdfError, setPdfError] = useState(false);
+  const [initialPdfLoading, setInitialPdfLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   const rowVirtualizer = useVirtualizer({
     count: totalNoOfPages,
@@ -26,16 +29,30 @@ export const PdfProvider = ({ children }) => {
   const handleScroll = () => {
     const parent = parentRef.current;
     if (!parent) return;
+
     const scrollTop = parent.scrollTop;
+    const viewportHeight = parent.clientHeight;
     const virtualItems = rowVirtualizer.getVirtualItems();
     if (!virtualItems.length) return;
 
+    let maxVisibleHeight = 0;
     let currentIndex = 0;
+
     for (let item of virtualItems) {
-      if (item.start <= scrollTop) {
+      const itemTop = item.start;
+      const itemBottom = item.start + item.size;
+
+      const visibleTop = Math.max(itemTop, scrollTop);
+      const visibleBottom = Math.min(itemBottom, scrollTop + viewportHeight);
+
+      const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+      if (visibleHeight > maxVisibleHeight) {
+        maxVisibleHeight = visibleHeight;
         currentIndex = item.index;
-      } else break;
+      }
     }
+
     setCurrentPageNo(currentIndex + 1);
   };
 
@@ -77,12 +94,19 @@ export const PdfProvider = ({ children }) => {
   const zoomIn = () => setZoom((prev) => prev + 0.1);
   const zoomOut = () => setZoom((prev) => Math.max(prev - 0.1, 0.1));
 
-  const downloadPdf = () => {
-    if (pdfBlobUrl) {
+  const downloadPdf = async () => {
+    if (!pdfBlobUrl || downloading) return;
+
+    setDownloading(true);
+    try {
       const a = document.createElement("a");
       a.href = pdfBlobUrl;
       a.download = `document.pdf`;
       a.click();
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -125,6 +149,11 @@ export const PdfProvider = ({ children }) => {
         zoomOut,
         downloadPdf,
         onDocumentLoadSuccess,
+        pdfError,
+        setPdfError,
+        initialPdfLoading,
+        setInitialPdfLoading,
+        downloading
       }}
     >
       {children}

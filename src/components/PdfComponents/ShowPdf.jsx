@@ -23,17 +23,17 @@ export default function ShowPdf() {
   } = usePdf();
 
   const { name } = useParams();
-  const [loading, setLoading] = useState(true);
   const [pdfId, setPdfId] = useState(null);
   const [highlights, setHighlights] = useState([]);
   const [commentBox, setCommentBox] = useState(null);
   const [commentText, setCommentText] = useState("");
   const [activeHighlightId, setActiveHighlightId] = useState(null);
+  const [hoveredHighlightId, setHoveredHighlightId] = useState(null);
   const [pageLoading, setPageLoading] = useState({});
   const pageRefs = useRef({});
+  const {pdfError , setPdfError ,initialPdfLoading , setInitialPdfLoading} = usePdf();
 
   useEffect(() => {
-    setLoading(true);
     loadPdfFromServer();
     return () => {
       if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
@@ -48,15 +48,19 @@ export default function ShowPdf() {
       );
       if (res.data.type !== "application/pdf") {
         toast.error("Invalid PDF file");
+        setPdfError(true)
         return;
       }
       setPdfBlobUrl(URL.createObjectURL(res.data));
-      setLoading(false);
     } catch (err) {
       toast.error(err.message);
-      setLoading(false);
+      setInitialPdfLoading(false);
     }
   };
+
+  if(totalNoOfPages){
+    setInitialPdfLoading(false);
+  }
 
   useEffect(() => {
     if (!pdfBlobUrl) return;
@@ -100,40 +104,54 @@ export default function ShowPdf() {
   useEffect(() => {
     const handleMouseUp = (e) => {
       const selection = window.getSelection();
-      if (!selection.isCollapsed) {
-        const selectionString = selection.toString();
-        const range = selection.getRangeAt(0);
-        const rects = range.getClientRects();
-
-        const pageNumber = Object.keys(pageRefs.current).find((p) => {
-          const rect = pageRefs.current[p].getBoundingClientRect();
-          const selRect = rects[0];
-          return selRect.top >= rect.top && selRect.bottom <= rect.bottom;
-        });
-
-        if (!pageNumber) return;
-
-        const containerRect = pageRefs.current[pageNumber].getBoundingClientRect();
-
-        const relativeRects = Array.from(rects).map((r) => ({
-          left: (r.left - containerRect.left) / containerRect.width,
-          top: (r.top - containerRect.top) / containerRect.height,
-          width: r.width / containerRect.width,
-          height: r.height / containerRect.height,
-          page: Number(pageNumber),
-        }));
-
-        setCommentBox({
-          page: Number(pageNumber),
-          rects: relativeRects,
-          clientX: e.clientX,
-          clientY: e.clientY - 40,
-          text: selectionString,
-        });
-
-        setCommentText("");
+      if (!selection || selection.isCollapsed) return;
+      const selectionString = selection.toString();
+      if (!selectionString.trim()) {
         selection.removeAllRanges();
+        return;
       }
+      const range = selection.getRangeAt(0);
+      const rects = range.getClientRects();
+      if (!rects.length) {
+        selection.removeAllRanges();
+        return;
+      }
+
+      const pageNumber = Object.keys(pageRefs.current).find((p) => {
+        const el = pageRefs.current[p];
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const selRect = rects[0];
+        return selRect.top >= rect.top && selRect.bottom <= rect.bottom;
+      });
+
+      if (!pageNumber) {
+        selection.removeAllRanges();
+        return;
+      }
+
+      const pageContainer = pageRefs.current[pageNumber];
+      const canvasEl = pageContainer && pageContainer.querySelector && pageContainer.querySelector("canvas");
+      const containerRect = canvasEl ? canvasEl.getBoundingClientRect() : pageContainer.getBoundingClientRect();
+
+      const relativeRects = Array.from(rects).map((r) => ({
+        left: (r.left - containerRect.left) / containerRect.width,
+        top: (r.top - containerRect.top) / containerRect.height,
+        width: r.width / containerRect.width,
+        height: r.height / containerRect.height,
+        page: Number(pageNumber),
+      }));
+
+      setCommentBox({
+        page: Number(pageNumber),
+        rects: relativeRects,
+        clientX: e.clientX,
+        clientY: e.clientY - 40,
+        text: selectionString,
+      });
+
+      setCommentText("");
+      selection.removeAllRanges();
     };
 
     document.addEventListener("mouseup", handleMouseUp);
@@ -163,7 +181,7 @@ export default function ShowPdf() {
   };
 
   const updateComment = async (id) => {
-    if (!activeHighlightId || !commentText.trim()) return;
+    if (!id || !commentText.trim()) return;
     try {
       const updated = await updateHighlight(id, commentText);
       setHighlights((prev) =>
@@ -188,8 +206,10 @@ export default function ShowPdf() {
     }
   };
 
+  const pageWidth = Math.round(window.innerWidth * 0.85 * zoom);
+
   const handlePageLoadSuccess = (page, index) => {
-    const height = ((window.innerWidth * 0.85) / page.originalWidth) * page.originalHeight * zoom;
+    const height = (page.originalHeight / page.originalWidth) * pageWidth;
     setPageHeights((prev) => {
       const newHeights = [...prev];
       newHeights[index] = height;
@@ -199,13 +219,9 @@ export default function ShowPdf() {
     setPageLoading((prev) => ({ ...prev, [index + 1]: false }));
   };
 
-  if (!pdfBlobUrl) return <p className="text-center mt-10">Loading PDF...</p>;
-  if (loading) return <PdfLoading />;
-
   return (
     <>
-      <PdfMenu />
-      <div className="w-full min-h-screen flex flex-col items-center bg-gray-100 py-4">
+      <div className="w-full min-h-screen flex flex-col items-center bg-gray-100 ">
         <Document
           file={pdfBlobUrl}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -214,7 +230,7 @@ export default function ShowPdf() {
           {totalNoOfPages > 0 && (
             <div
               ref={parentRef}
-              style={{ height: "80vh", width: "90vw", overflowY: "auto", position: "relative" }}
+              style={{ height: "100vh", width: "100vw", overflowY: "auto", position: "relative" }}
             >
               <div
                 style={{
@@ -225,28 +241,40 @@ export default function ShowPdf() {
               >
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                   const pageNumber = virtualRow.index + 1;
-                  if (pageLoading[pageNumber] === undefined) pageLoading[pageNumber] = true;
+                  const isLoading = pageLoading[pageNumber] !== false;
+                  const wrapperHeight = pageHeights[virtualRow.index] || 400;
 
                   return (
                     <div
                       key={virtualRow.key}
-                      className="flex justify-center relative my-4"
-                      style={{ background: "#f5f5f5", boxShadow: "0 2px 6px rgba(0,0,0,0.1)", minHeight: "100px" }}
-                      ref={(el) => (pageRefs.current[pageNumber] = el)}
+                      className="flex justify-center relative "
+                      style={{
+                        background: "#f5f5f5",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                        minHeight: "100px",
+                        position: "absolute",
+                        top: `${virtualRow.start}px`,
+                        left: 0,
+                        right: 0,
+                        display: "flex",
+                        justifyContent: "center",
+                      }}
+                      ref={(el) => {
+                        if (el) pageRefs.current[pageNumber] = el;
+                      }}
                     >
-                      {pageLoading[pageNumber] && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
+                      {isLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white z-40">
                           <div className="loader border-t-4 border-blue-500 w-8 h-8 rounded-full animate-spin"></div>
                         </div>
                       )}
 
-                      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                      <div style={{ position: "relative", width: `${pageWidth}px`, height: `${wrapperHeight}px` }} className="flex justify-center">
                         <Page
                           pageNumber={pageNumber}
-                          width={window.innerWidth * 0.85}
+                          width={pageWidth}
                           renderTextLayer
                           renderAnnotationLayer
-                          scale={zoom}
                           onLoadSuccess={(page) => handlePageLoadSuccess(page, virtualRow.index)}
                         />
 
@@ -254,26 +282,45 @@ export default function ShowPdf() {
                           .filter((h) => h.page === pageNumber)
                           .map((h) => (
                             <React.Fragment key={h.id}>
-                              {h.rects.map((r, idx) => (
-                                <div
-                                  key={idx}
-                                  style={{
-                                    position: "absolute",
-                                    left: `${r.left * 100}%`,
-                                    top: `${r.top * 100}%`,
-                                    width: `${r.width * 100}%`,
-                                    height: `${r.height * 100}%`,
-                                    background: activeHighlightId === h.id ? "rgba(255,255,0,0.6)" : "rgba(255,255,0,0.4)",
-                                    borderRadius: "2px",
-                                    cursor: "pointer",
-                                  }}
-                                  onClick={() => {
-                                    setActiveHighlightId(h.id);
-                                    setCommentText(h.comment);
-                                    setCommentBox(null);
-                                  }}
-                                />
-                              ))}
+                              {h.rects.map((r, idx) => {
+                                const isActive = activeHighlightId === h.id;
+                                const isHovered = hoveredHighlightId === h.id;
+                                const bg = isActive || isHovered
+                                  ? "rgba(255,200,60,0.85)"
+                                  : "linear-gradient(180deg, rgba(255,245,157,0.35), rgba(255,223,93,0.28))";
+                                const border = "1px solid rgba(255,180,0,0.55)";
+                                const boxShadow = isHovered ? "0 8px 20px rgba(255,180,0,0.14)" : "inset 0 1px 0 rgba(255,255,255,0.45)";
+
+                                return (
+                                  <div
+                                    key={idx}
+                                    onMouseEnter={() => setHoveredHighlightId(h.id)}
+                                    onMouseLeave={() => setHoveredHighlightId((prev) => (prev === h.id ? null : prev))}
+                                    onClick={() => {
+                                      setActiveHighlightId(h.id);
+                                      setCommentText(h.comment || "");
+                                      setCommentBox(null);
+                                    }}
+                                    style={{
+                                      position: "absolute",
+                                      left: `${r.left * 100}%`,
+                                      top: `${r.top * 100}%`,
+                                      width: `${r.width * 100}%`,
+                                      height: `${r.height * 100}%`,
+                                      background: bg,
+                                      border,
+                                      borderRadius: "4px",
+                                      cursor: "pointer",
+                                      transition: "background 140ms ease, box-shadow 140ms ease, transform 140ms ease",
+                                      transform: isHovered ? "scale(1.01)" : "none",
+                                      boxShadow,
+                                      zIndex: 60,
+                                      pointerEvents: "auto",
+                                      backdropFilter: "saturate(120%)",
+                                    }}
+                                  />
+                                );
+                              })}
                             </React.Fragment>
                           ))}
                       </div>
@@ -283,21 +330,30 @@ export default function ShowPdf() {
                         highlights
                           .filter((h) => h.id === activeHighlightId && h.page === pageNumber)
                           .map((h) => {
-                            const firstRect = h.rects[0];
+                            const firstRect = h.rects && h.rects[0];
+                            const container = pageRefs.current[pageNumber];
+                            const canvasEl = container && container.querySelector && container.querySelector("canvas");
+                            const containerRect = canvasEl ? canvasEl.getBoundingClientRect() : container ? container.getBoundingClientRect() : null;
+                            const topPx =
+                              containerRect && firstRect
+                                ? firstRect.top * containerRect.height - 70
+                                : -9999;
+                            const leftPx =
+                              containerRect && firstRect ? firstRect.left * containerRect.width : 0;
                             return (
                               <div
                                 key={h.id}
                                 style={{
                                   position: "absolute",
-                                  top: `${firstRect.top * pageRefs.current[pageNumber].getBoundingClientRect().height - 60}px`,
-                                  left: `${firstRect.left * pageRefs.current[pageNumber].getBoundingClientRect().width}px`,
-                                  zIndex: 50,
+                                  top: `${topPx}px`,
+                                  left: `${leftPx}px`,
+                                  zIndex: 100,
                                   background: "white",
-                                  border: "1px solid #ccc",
-                                  padding: "6px 8px",
-                                  borderRadius: "4px",
-                                  width: "220px",
-                                  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                                  border: "1px solid rgba(200,200,200,0.9)",
+                                  padding: "8px",
+                                  borderRadius: "6px",
+                                  width: "240px",
+                                  boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
                                 }}
                               >
                                 <textarea
@@ -305,7 +361,7 @@ export default function ShowPdf() {
                                   onChange={(e) => setCommentText(e.target.value)}
                                   className="border px-2 py-1 rounded w-full h-20 resize-none"
                                 />
-                                <div className="flex gap-2 mt-1">
+                                <div className="flex gap-2 mt-2">
                                   <button
                                     onClick={() => updateComment(h.id)}
                                     className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
@@ -337,14 +393,14 @@ export default function ShowPdf() {
               top: commentBox.clientY,
               left: commentBox.clientX,
               background: "white",
-              border: "1px solid #ccc",
+              border: "1px solid rgba(200,200,200,0.9)",
               padding: "6px 8px",
-              borderRadius: "4px",
-              zIndex: 20,
+              borderRadius: "6px",
+              zIndex: 120,
               display: "flex",
               gap: "6px",
               alignItems: "center",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
             }}
           >
             <textarea

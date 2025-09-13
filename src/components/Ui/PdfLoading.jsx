@@ -5,9 +5,9 @@ function PdfSkeleton({ pages = 1 }) {
   return (
     <div className="flex flex-col gap-6 p-4 w-full items-center">
       <div className="w-full max-w-3xl flex flex-col gap-2 mb-4">
-        <Skeleton height={30} width={250} />  {/* Title */}
+        <Skeleton height={30} width={250} />  
         <div className="flex gap-4">
-          <Skeleton height={20} width={100} /> {/* Author/File size */}
+          <Skeleton height={20} width={100} /> 
           <Skeleton height={20} width={80} />
         </div>
       </div>
