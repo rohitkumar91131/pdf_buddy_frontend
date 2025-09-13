@@ -1,5 +1,8 @@
 # PDF Buddy - Frontend
 
+[![Ask DeepWiki](https://devin.ai/assets/askdeepwiki.png)](https://deepwiki.com/rohitkumar91131/pdf_buddy_frontend)
+
+
 This is the frontend for PDF Buddy, a web application built with React and Vite. It allows users to upload, manage, view, and annotate their PDF documents seamlessly.
 
 ## Key Features
